@@ -74,6 +74,13 @@
 			</select>
 			<button id="save-btn" onclick="reminder_app.saveTimings()">Save</button>
 		</div>
+		<div id="reminder">
+			<h2>New reminder</h2>
+			<span>Reminder after</span>
+			<input id="reminder-hrs" type="text" />
+			<span>hours</span>
+			<button id="save-reminder" onclick="reminder_app.saveReminder()">Save</button>
+		</div>
 		<script>
 			reminder_app = {
 				checkStorage : function(){
@@ -103,6 +110,48 @@
 						alert("Start time should be before end time");
 					}
 				},
+				validateReminder: function(time){
+					return (!isNaN(time) && localStorage.getItem("reminder_app_data"))
+				},
+				saveReminder: function(){
+					var wait_time = parseInt(document.getElementById('reminder-hrs').value)*60*60*1000;
+					if(reminder_app.validateReminder(wait_time)){
+						var todayEOD = new Date();
+						todayEOD.setHours(JSON.parse(localStorage.getItem("reminder_app_data"))["timings"]["end_time"])
+						todayEOD.setMinutes(0);
+						todayEOD.setSeconds(0);
+						var todaySOD = new Date();
+						todaySOD.setHours(JSON.parse(localStorage.getItem("reminder_app_data"))["timings"]["start_time"])
+						todaySOD.setMinutes(0);
+						todaySOD.setSeconds(0);
+						var now = new Date(),
+						offset = 0,
+						triggerDate,
+						workingInterval = todayEOD - todaySOD,
+						timeLeft, add24hours, end_offset;
+						if(todaySOD < now && now < todayEOD){
+							offset = todayEOD - now;
+						}
+						else if(now < todaySOD){
+							offset = todayEOD - todaySOD;
+							now = todaySOD;
+						}
+						if(offset > wait_time){
+							triggerDate = new Date(now.getTime() + wait_time);
+						}
+						else{
+							nextDayOffset = 24*60*60*1000 - workingInterval;
+							timeLeft = wait_time - offset;
+							add24hours = Math.floor(timeLeft/workingInterval);
+							end_offset = timeLeft%workingInterval;
+							triggerDate = new Date(now.getTime() + offset + nextDayOffset + add24hours*24*60*60*1000 + end_offset)
+						}
+						alert("reminder time: " + triggerDate);
+					}
+					else{
+						alert("Enter valid hours");	
+					}
+				},
 				disableElements: function(elements){
 					elements.forEach(function(ele){
 						ele.setAttribute("disabled", true);
@@ -123,9 +172,6 @@
 						var storageData = JSON.parse(localStorage.getItem("reminder_app_data"));
 						if(storageData){
 							this.setInitialData(storageData)
-						}
-						else{
-							alert("no Data");
 						}
 					}
 					else{
