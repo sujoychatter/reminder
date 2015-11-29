@@ -1,0 +1,43 @@
+<html>
+	<head>
+		<script>
+			reminder_app = {
+				checkStorage : function(){
+					return typeof(Storage) !== "undefined"
+				},
+				init : function(){
+					if(this.checkStorage()){
+						if(localStorage.getItem("reminder_app_data")){
+
+						}
+						else{
+							alert("no Data");
+						}
+					}
+					else{
+						alert('Sorry, this app is not suported in this browser')
+					}
+				}
+			}
+			window.onload = reminder_app.init.bind(reminder_app);
+		</script>
+	</head>
+	<body>
+		<h1>
+			Reminder Application
+		</h1>
+		<div class="off-tim">
+			<p>
+				Office timings
+			</p>
+			<span>
+				Start time:
+			</span>
+			<input type="text" />
+			<span>
+				End time:
+			</span>
+			<input type="text" />
+		</div>
+	</body>
+</html>
