@@ -1,43 +1,139 @@
 <html>
 	<head>
+		<style>
+			#off-tim.saved #save-btn{
+					display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>
+			Reminder Application
+		</h1>
+		<div id="off-tim">
+			<p>
+				Office timings:
+			</p>
+			<span>
+				Start time:
+			</span>
+			<select id="start-timing">
+				<option value="0">00:00</option>
+				<option value="1">01:00</option>
+				<option value="2">02:00</option>
+				<option value="3">03:00</option>
+				<option value="4">04:00</option>
+				<option value="5">05:00</option>
+				<option value="6">06:00</option>
+				<option value="7">07:00</option>
+				<option value="8">08:00</option>
+				<option value="9">09:00</option>
+				<option value="10">10:00</option>
+				<option value="11">11:00</option>
+				<option value="12">12:00</option>
+				<option value="13">13:00</option>
+				<option value="14">14:00</option>
+				<option value="15">15:00</option>
+				<option value="16">16:00</option>
+				<option value="17">17:00</option>
+				<option value="18">18:00</option>
+				<option value="19">19:00</option>
+				<option value="20">20:00</option>
+				<option value="21">21:00</option>
+				<option value="22">22:00</option>
+				<option value="23">23:00</option>
+			</select>
+			<span>
+				End time:
+			</span>
+			<select id="end-timing">
+				<option value="0">00:00</option>
+				<option value="1">01:00</option>
+				<option value="2">02:00</option>
+				<option value="3">03:00</option>
+				<option value="4">04:00</option>
+				<option value="5">05:00</option>
+				<option value="6">06:00</option>
+				<option value="7">07:00</option>
+				<option value="8">08:00</option>
+				<option value="9">09:00</option>
+				<option value="10">10:00</option>
+				<option value="11">11:00</option>
+				<option value="12">12:00</option>
+				<option value="13">13:00</option>
+				<option value="14">14:00</option>
+				<option value="15">15:00</option>
+				<option value="16">16:00</option>
+				<option value="17">17:00</option>
+				<option value="18">18:00</option>
+				<option value="19">19:00</option>
+				<option value="20">20:00</option>
+				<option value="21">21:00</option>
+				<option value="22">22:00</option>
+				<option value="23">23:00</option>
+			</select>
+			<button id="save-btn" onclick="reminder_app.saveTimings()">Save</button>
+		</div>
 		<script>
 			reminder_app = {
 				checkStorage : function(){
 					return typeof(Storage) !== "undefined"
 				},
+				validateTimings: function(start, end){
+					return(start < end);
+				},
+				store: {
+					saveData: function(type){
+						reminder_app.store[type].apply(reminder_app, Array.prototype.slice.call(arguments, 1));
+					},
+					timingsSet: function(startTime, endTime){
+						localStorage.setItem("reminder_app_data", JSON.stringify({timings  : {start_time: startTime, end_time: endTime}}));
+						reminder_app.disableElements([document.getElementById('start-timing'), document.getElementById('end-timing')]);
+						document.getElementById('off-tim').classList.add("saved");
+					}
+				},
+				saveTimings: function(){
+					startTiming = parseInt(document.getElementById('start-timing').value);
+					endTiming = parseInt(document.getElementById('end-timing').value);
+					if(reminder_app.validateTimings(startTiming, endTiming))
+					{
+						reminder_app.store.saveData("timingsSet", startTiming, endTiming);
+					}
+					else{
+						alert("Start time should be before end time");
+					}
+				},
+				disableElements: function(elements){
+					elements.forEach(function(ele){
+						ele.setAttribute("disabled", true);
+					})
+				},
+				setInitialData: function(storeData){
+					var startElement = document.getElementById('start-timing');
+					var endElement = document.getElementById('end-timing');
+
+					startElement.value = storeData.timings.start_time;
+					endElement.value = storeData.timings.end_time;
+
+					this.disableElements([startElement, endElement]);
+					document.getElementById('off-tim').classList.add("saved");
+				},
 				init : function(){
 					if(this.checkStorage()){
-						if(localStorage.getItem("reminder_app_data")){
-
+						var storageData = JSON.parse(localStorage.getItem("reminder_app_data"));
+						if(storageData){
+							this.setInitialData(storageData)
 						}
 						else{
 							alert("no Data");
 						}
 					}
 					else{
-						alert('Sorry, this app is not suported in this browser')
+						alert('Sorry, this app is not suported in this browser');
 					}
 				}
 			}
 			window.onload = reminder_app.init.bind(reminder_app);
 		</script>
-	</head>
-	<body>
-		<h1>
-			Reminder Application
-		</h1>
-		<div class="off-tim">
-			<p>
-				Office timings
-			</p>
-			<span>
-				Start time:
-			</span>
-			<input type="text" />
-			<span>
-				End time:
-			</span>
-			<input type="text" />
-		</div>
 	</body>
 </html>
