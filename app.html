@@ -79,6 +79,7 @@
 			<span>Reminder after</span>
 			<input id="reminder-hrs" type="text" />
 			<span>hours</span>
+			<textarea id="reminder-text" placeholder="Enter reminder text"></textarea>
 			<button id="save-reminder" onclick="reminder_app.saveReminder()">Save</button>
 		</div>
 		<script>
@@ -91,12 +92,38 @@
 				},
 				store: {
 					saveData: function(type){
-						reminder_app.store[type].apply(reminder_app, Array.prototype.slice.call(arguments, 1));
+						return reminder_app.store[type].apply(reminder_app, Array.prototype.slice.call(arguments, 1));
 					},
 					timingsSet: function(startTime, endTime){
 						localStorage.setItem("reminder_app_data", JSON.stringify({timings  : {start_time: startTime, end_time: endTime}}));
 						reminder_app.disableElements([document.getElementById('start-timing'), document.getElementById('end-timing')]);
 						document.getElementById('off-tim').classList.add("saved");
+					},
+					reminderSet: function(reminder){
+						var storeData = JSON.parse(localStorage.getItem("reminder_app_data")),
+							reminders = storeData.reminders,
+							stored_index;
+						if(reminders){
+							stored_index = reminder_app.store.helpers.pushReminder(reminder, reminders);
+						}
+						else{
+							storeData.reminders = [reminder];
+							stored_index = 0;
+						}
+						localStorage.setItem("reminder_app_data", JSON.stringify(storeData));
+						return stored_index;
+					},
+					helpers: {
+						pushReminder: function(new_reminder, reminders){
+							var i=0, reminders_length = reminders.length;
+							while(new Date(reminders[i].trigger_date) < new Date(new_reminder.trigger_date)){
+								if(++i == reminders_length){
+									break;
+								}
+							}
+							reminders.splice(i, 0, new_reminder);
+							return i;
+						}
 					}
 				},
 				saveTimings: function(){
@@ -111,7 +138,15 @@
 					}
 				},
 				validateReminder: function(time){
-					return (!isNaN(time) && localStorage.getItem("reminder_app_data"))
+					storageData = localStorage.getItem("reminder_app_data");
+					timeIsNum = !isNaN(time);
+					if(!storageData){
+						alert("Please set office timings first");
+					}
+					else if(!timeIsNum){
+						alert("Please enter valid hours");	
+					}
+					return (storageData && timeIsNum);
 				},
 				saveReminder: function(){
 					var wait_time = parseInt(document.getElementById('reminder-hrs').value)*60*60*1000;
@@ -146,11 +181,24 @@
 							end_offset = timeLeft%workingInterval;
 							triggerDate = new Date(now.getTime() + offset + nextDayOffset + add24hours*24*60*60*1000 + end_offset)
 						}
-						alert("reminder time: " + triggerDate);
+						var reminderObj= {
+								trigger_date: triggerDate,
+								message: document.getElementById("reminder-text").value
+							},
+							storedIndex;
+						storedIndex = reminder_app.store.saveData("reminderSet", reminderObj);
+						if(storedIndex == 0){
+							reminder_app.initiateTimeout()
+						}
+						alert("reminder time: " + triggerDate, storedIndex);
 					}
-					else{
-						alert("Enter valid hours");	
-					}
+				},
+				initiateTimeout: function(){
+					//remote prev timeout
+					//iterate to find < now reminders, show error
+					// first > now reminder set timeout
+
+					//call this function on app init, new remider added and reminder timeout callback
 				},
 				disableElements: function(elements){
 					elements.forEach(function(ele){
