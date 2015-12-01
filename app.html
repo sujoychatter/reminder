@@ -103,7 +103,7 @@
 						var storeData = JSON.parse(localStorage.getItem("reminder_app_data")),
 							reminders = storeData.reminders,
 							stored_index;
-						if(reminders){
+						if(reminders && reminders.length > 0){
 							stored_index = reminder_app.store.helpers.pushReminder(reminder, reminders);
 						}
 						else{
@@ -149,7 +149,7 @@
 					return (storageData && timeIsNum);
 				},
 				saveReminder: function(){
-					var wait_time = parseInt(document.getElementById('reminder-hrs').value)*60*60*1000;
+					var wait_time = parseFloat(document.getElementById('reminder-hrs').value)*60*60*1000;
 					if(reminder_app.validateReminder(wait_time)){
 						var todayEOD = new Date();
 						todayEOD.setHours(JSON.parse(localStorage.getItem("reminder_app_data"))["timings"]["end_time"])
@@ -188,17 +188,36 @@
 							storedIndex;
 						storedIndex = reminder_app.store.saveData("reminderSet", reminderObj);
 						if(storedIndex == 0){
-							reminder_app.initiateTimeout()
+							reminder_app.initiateTimeout();
 						}
 						alert("reminder time: " + triggerDate, storedIndex);
 					}
 				},
 				initiateTimeout: function(){
-					//remote prev timeout
-					//iterate to find < now reminders, show error
-					// first > now reminder set timeout
+					if(reminder_app.store.timeout){
+						clearTimeout(reminder_app.store.timeout)
+					}
+					var i = 0,
+						storeData = JSON.parse(localStorage.getItem("reminder_app_data"));
+					if(storeData && storeData.reminders && storeData.reminders.length > 0){
+						var reminders = storeData.reminders;
+						while(reminders[i] && new Date(reminders[i].trigger_date) <= new Date()){
+							i++;
+						}
+						var expired_reminders = reminders.splice(0,i),
+							expired_msgs = expired_reminders.map(function(r){return r.message}).join('\n');
+						alert("you missed these reminders: " + expired_msgs);
+						localStorage.setItem("reminder_app_data", JSON.stringify(storeData));
+						reminder_app.store.timeout = setTimeout(reminder_app.remind, (new Date(reminders[0].trigger_date)).getTime() - (new Date()).getTime())
+					}
+				},
+				remind: function(){
+					var storeData = JSON.parse(localStorage.getItem("reminder_app_data")),
+						reminder = storeData.reminders.splice(0,1);
+					localStorage.setItem("reminder_app_data", JSON.stringify(storeData));
+					reminder_app.initiateTimeout();
+					alert(reminder[0].message);
 
-					//call this function on app init, new remider added and reminder timeout callback
 				},
 				disableElements: function(elements){
 					elements.forEach(function(ele){
@@ -219,7 +238,8 @@
 					if(this.checkStorage()){
 						var storageData = JSON.parse(localStorage.getItem("reminder_app_data"));
 						if(storageData){
-							this.setInitialData(storageData)
+							this.setInitialData(storageData);
+							this.initiateTimeout();
 						}
 					}
 					else{
