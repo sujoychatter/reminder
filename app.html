@@ -237,12 +237,15 @@
 						}
 						var expired_reminders = reminders.splice(0,i),
 							expired_msgs = expired_reminders.map(function(r){return r.message}).join('\n\n');
-						if(expired_msgs.length > 0){
-							alert("You missed these reminders: \n" + expired_msgs);
-						}
+
 						localStorage.setItem("reminder_app_data", JSON.stringify(storeData));
 						if(reminders.length > 0){
 							reminder_app.store.timeout = setTimeout(reminder_app.remind, (new Date(reminders[0].trigger_date)).getTime() - (new Date()).getTime())
+						}
+
+						if(expired_msgs.length > 0){
+							alert("You missed these reminders: \n" + expired_msgs);
+							reminder_app.initiateTimeout();
 						}
 					}
 				},
