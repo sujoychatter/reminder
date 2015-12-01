@@ -188,6 +188,7 @@
 						offset = 0,
 						triggerDate,
 						workingInterval = todayEOD - todaySOD,
+						workingIntervalOffset = 0,
 						timeLeft, add24hours, end_offset;
 						if(todaySOD < now && now < todayEOD){
 							offset = todayEOD - now;
@@ -196,11 +197,14 @@
 							offset = todayEOD - todaySOD;
 							now = todaySOD;
 						}
+						else if(now > todaySOD){
+							workingIntervalOffset = new Date().getTime() - todayEOD.getTime();
+						}
 						if(offset > wait_time){
 							triggerDate = new Date(now.getTime() + wait_time);
 						}
 						else{
-							nextDayOffset = 24*60*60*1000 - workingInterval;
+							nextDayOffset = 24*60*60*1000 - workingInterval - workingIntervalOffset;
 							timeLeft = wait_time - offset;
 							add24hours = Math.floor(timeLeft/workingInterval);
 							end_offset = timeLeft%workingInterval;
