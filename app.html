@@ -1,8 +1,28 @@
 <html>
 	<head>
 		<style>
+			body{
+				text-align: center;
+			}
+			#reminders-container{
+				margin-top: 50px;
+			}
+			#rem-table{
+				margin: 0 auto;
+			}
 			#off-tim.saved #save-btn{
 					display: none;
+			}
+			.header-row{
+				font-weight: bold;
+			}
+			table{
+				border-spacing: 0;
+				border-collapse: collapse;
+			}
+			td{
+				border: 1px solid;
+				padding: 5px;
 			}
 		</style>
 	</head>
@@ -10,6 +30,7 @@
 		<h1>
 			Reminder Application
 		</h1>
+		<button id="reset" onclick="reminder_app.reset()">Reset All</button>
 		<div id="off-tim">
 			<p>
 				Office timings:
@@ -82,6 +103,8 @@
 			<textarea id="reminder-text" placeholder="Enter reminder text"></textarea>
 			<button id="save-reminder" onclick="reminder_app.saveReminder()">Save</button>
 		</div>
+		<div id="reminders-container">
+		</div>
 		<script>
 			reminder_app = {
 				checkStorage : function(){
@@ -95,7 +118,7 @@
 						return reminder_app.store[type].apply(reminder_app, Array.prototype.slice.call(arguments, 1));
 					},
 					timingsSet: function(startTime, endTime){
-						localStorage.setItem("reminder_app_data", JSON.stringify({timings  : {start_time: startTime, end_time: endTime}}));
+						localStorage.setItem("reminder_app_data", JSON.stringify({timings  : {start_time: startTime, end_time: endTime}, reminders: []}));
 						reminder_app.disableElements([document.getElementById('start-timing'), document.getElementById('end-timing')]);
 						document.getElementById('off-tim').classList.add("saved");
 					},
@@ -149,7 +172,9 @@
 					return (storageData && timeIsNum);
 				},
 				saveReminder: function(){
-					var wait_time = parseFloat(document.getElementById('reminder-hrs').value)*60*60*1000;
+					var hours_element = document.getElementById('reminder-hrs'),
+						text_element = document.getElementById("reminder-text"),
+						wait_time = parseFloat(hours_element.value)*60*60*1000;
 					if(reminder_app.validateReminder(wait_time)){
 						var todayEOD = new Date();
 						todayEOD.setHours(JSON.parse(localStorage.getItem("reminder_app_data"))["timings"]["end_time"])
@@ -183,14 +208,16 @@
 						}
 						var reminderObj= {
 								trigger_date: triggerDate,
-								message: document.getElementById("reminder-text").value
+								message: text_element.value
 							},
 							storedIndex;
 						storedIndex = reminder_app.store.saveData("reminderSet", reminderObj);
+						reminder_app.createRows([reminderObj], false, (storedIndex + 1))
 						if(storedIndex == 0){
 							reminder_app.initiateTimeout();
 						}
-						alert("reminder time: " + triggerDate, storedIndex);
+						hours_element.value = "";
+						text_element.value = "";
 					}
 				},
 				initiateTimeout: function(){
@@ -205,18 +232,25 @@
 							i++;
 						}
 						var expired_reminders = reminders.splice(0,i),
-							expired_msgs = expired_reminders.map(function(r){return r.message}).join('\n');
-						alert("you missed these reminders: " + expired_msgs);
+							expired_msgs = expired_reminders.map(function(r){return r.message}).join('\n\n');
+						if(expired_msgs.length > 0){
+							alert("You missed these reminders: \n" + expired_msgs);
+						}
 						localStorage.setItem("reminder_app_data", JSON.stringify(storeData));
-						reminder_app.store.timeout = setTimeout(reminder_app.remind, (new Date(reminders[0].trigger_date)).getTime() - (new Date()).getTime())
+						if(reminders.length > 0){
+							reminder_app.store.timeout = setTimeout(reminder_app.remind, (new Date(reminders[0].trigger_date)).getTime() - (new Date()).getTime())
+						}
 					}
 				},
 				remind: function(){
 					var storeData = JSON.parse(localStorage.getItem("reminder_app_data")),
 						reminder = storeData.reminders.splice(0,1);
 					localStorage.setItem("reminder_app_data", JSON.stringify(storeData));
+					if(confirm("You have a reminder: \n" + reminder[0].message + "\n\nDo you want to reschedule this?")){
+						document.getElementById('reminder-text').value = reminder[0].message;
+					}
 					reminder_app.initiateTimeout();
-					alert(reminder[0].message);
+					document.getElementsByClassName('rem-row')[0].remove();
 
 				},
 				disableElements: function(elements){
@@ -224,26 +258,114 @@
 						ele.setAttribute("disabled", true);
 					})
 				},
-				setInitialData: function(storeData){
-					var startElement = document.getElementById('start-timing');
-					var endElement = document.getElementById('end-timing');
+				enableElements: function(elements){
+					elements.forEach(function(ele){
+						ele.removeAttribute("disabled");
+					})
+				},
+				createRows: function(reminders, init, position){
+					var table;
+					if(init){
+						table = document.createElement('table');
+						table.setAttribute('id', 'rem-table');
+						var header = document.createElement('tr');
+						header.setAttribute('class', 'header-row');
+						var header_elems = [document.createElement('td'), document.createElement('td'), document.createElement('td')];
+						header_elems[0].innerHTML = "S.No";
+						header_elems[1].innerHTML = "Reminder Message";
+						header_elems[2].innerHTML = "Reminder Date";
+						header.appendChild(header_elems[0]);
+						header.appendChild(header_elems[1]);
+						header.appendChild(header_elems[2]);
+						table.appendChild(header);
+						document.getElementById('reminders-container').appendChild(table);
+					}
+					else{
+						table = document.getElementById("rem-table");
+					}
+					var rows = reminders.map(function(reminder, index){
+						var row = document.createElement('tr'),
+							elems = [document.createElement('td'), document.createElement('td'), document.createElement('td')];
+						if(position){
+							elems[0].innerHTML = position;
+						}
+						else{
+							elems[0].innerHTML = index + 1;
+						}
+						elems[1].innerHTML = reminder.message;
+						elems[2].innerHTML = new Date(reminder.trigger_date);
+						row.appendChild(elems[0]);
+						row.appendChild(elems[1]);
+						row.appendChild(elems[2]);
+						row.setAttribute('class', 'rem-row');
+						return row;
+					})
+					if(init){
+						rows.forEach(function(row){
+							table.appendChild(row);
+						})
+					}
+					else{
+						var prev_rows = document.getElementsByClassName('rem-row'),
+							before_ele = prev_rows[position - 1],
+							i;
+						if(prev_rows.length != position-1 && prev_rows.length != 0){
+							table.insertBefore(rows[0], before_ele);
+							for(i=position; i < prev_rows.length; i++){
+								prev_rows[i].firstChild.innerHTML = parseInt(prev_rows[i].firstChild.innerHTML) + 1;
+							}
+						}
+						else
+							table.appendChild(rows[0]);
+					}
+				},
+				setInitialData: function(){
+					var storeData = JSON.parse(localStorage.getItem('reminder_app_data'));
+					if(storeData){
+						var startElement = document.getElementById('start-timing');
+						var endElement = document.getElementById('end-timing');
 
-					startElement.value = storeData.timings.start_time;
-					endElement.value = storeData.timings.end_time;
+						startElement.value = storeData.timings.start_time;
+						endElement.value = storeData.timings.end_time;
 
-					this.disableElements([startElement, endElement]);
-					document.getElementById('off-tim').classList.add("saved");
+						this.disableElements([startElement, endElement]);
+						document.getElementById('off-tim').classList.add("saved");
+					}
+					if(storeData && storeData.reminders){
+						this.createRows(storeData.reminders, true)
+					}
+					else{
+						this.createRows([], true)
+					}
+
+				},
+				reset: function(){
+					if(reminder_app.store.timeout){
+						clearTimeout(reminder_app.store.timeout);
+					}
+					localStorage.removeItem('reminder_app_data');
+					var rows = document.getElementsByClassName('rem-row'), i;
+					for(i=rows.length - 1; i>=0 ;i--){
+						rows[i].remove()
+					}
+
+					var startElement = document.getElementById('start-timing'),
+						endElement = document.getElementById('end-timing');
+
+					reminder_app.enableElements([startElement, endElement]);
+
+					document.getElementById('off-tim').classList.remove("saved");
 				},
 				init : function(){
 					if(this.checkStorage()){
 						var storageData = JSON.parse(localStorage.getItem("reminder_app_data"));
+						this.setInitialData();
 						if(storageData){
-							this.setInitialData(storageData);
 							this.initiateTimeout();
 						}
 					}
 					else{
-						alert('Sorry, this app is not suported in this browser');
+						alert('Sorry, reminder app is not suported in this browser');
 					}
 				}
 			}
